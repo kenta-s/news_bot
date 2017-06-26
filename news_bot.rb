@@ -24,7 +24,7 @@ class NewsBot
   end
 
   def tweet_all!
-    @client.user_timeline(@user).each do |tweet|
+    @client.user_timeline(@user).first(5).each do |tweet|
       tweet!(tweet)
     end
   end
@@ -96,5 +96,5 @@ class NewsBot
 end
 
 bot = NewsBot.new
-bot.tweet_all!
+# bot.tweet_all!
 bot.reply!
