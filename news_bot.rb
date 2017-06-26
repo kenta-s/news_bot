@@ -1,0 +1,77 @@
+require 'twitter'
+require 'pry'
+
+class NewsBot
+  OWNER = %w(kenta_s_dev)
+  CATEGORIES = %w(その他 経済 スポーツ 芸能)
+
+  def initialize
+    @client = Twitter::REST::Client.new do |config|
+      config.consumer_key        = ENV['KENTA_S_NEWS_CONSUMER_KEY']
+      config.consumer_secret     = ENV['KENTA_S_NEWS_CONSUMER_SECRET']
+      config.access_token        = ENV['KENTA_S_NEWS_ACCESS_TOKEN']
+      config.access_token_secret = ENV['KENTA_S_NEWS_ACCESS_TOKEN_SECRET']
+    end
+    @tweet = @client.user("YahooNewsTopics").tweet
+  end
+
+  def tweet!
+    if valid_tweet?
+      File.open("tweeted.txt", "a") do |f|
+        f.puts(@tweet.id)
+      end
+      @client.update(@tweet.text + " [ from @YahooNewsTopics ]")
+    end
+  end
+
+  def reply!
+    resent_replies = @client.mentions_timeline.first(10)
+    resent_replies.each do |tweet|
+      user_name = tweet.user.screen_name
+      next unless OWNER.include?(user_name)
+      next unless valid_reply?(tweet.id)
+
+      tweet.text
+      tweet_category = nil
+      CATEGORIES.each do |category|
+        if tweet.text.match(category)
+          tweet_category = $&
+        else
+          next
+        end
+      end
+
+      if tweet_category.nil?
+        text = "@#{user_name} 現在有効なカテゴリは「その他, 経済, スポーツ, 芸能」 です。"
+      else
+        text = "@#{user_name} #{tweet_category} ですね。\n学習しますた m9(^Д^)"
+      end
+
+      @client.update(text, in_reply_to_status_id: tweet.id)
+      File.open("replied.txt", "a") do |f|
+        f.puts(tweet.id)
+      end
+    end
+  end
+
+  private
+
+  def valid_tweet?
+    tweet_id = @tweet.id.to_s + "\n"
+
+    file = File.open('tweeted.txt', 'r')
+    resent_tweeted_ids = file.readlines.last(10)
+    !resent_tweeted_ids.include?(tweet_id)
+  end
+
+  def valid_reply?(tweet_id)
+    tweet_id = tweet_id.to_s + "\n"
+    file = File.open('replied.txt', 'r')
+    tweeted_ids = file.readlines.last(10)
+    !tweeted_ids.include?(tweet_id)
+  end
+end
+
+bot = NewsBot.new
+bot.tweet!
+bot.reply!
