@@ -20,15 +20,21 @@ class NewsBot
       config.access_token        = ENV['KENTA_S_NEWS_ACCESS_TOKEN']
       config.access_token_secret = ENV['KENTA_S_NEWS_ACCESS_TOKEN_SECRET']
     end
-    @tweet = @client.user("YahooNewsTopics").tweet
+    @user = "@YahooNewsTopics"
   end
 
-  def tweet!
-    if valid_tweet?
+  def tweet_all!
+    @client.user_timeline(@user).each do |tweet|
+      tweet!(tweet)
+    end
+  end
+
+  def tweet!(tweet)
+    if valid_tweet?(tweet)
       File.open("tweeted.txt", "a") do |f|
-        f.puts(@tweet.id)
+        f.puts(tweet.id)
       end
-      @client.update(@tweet.text + " [ from @YahooNewsTopics ]")
+      @client.update(tweet.text + " [ from #{@user} ]")
     end
   end
 
@@ -64,13 +70,13 @@ class NewsBot
 
   private
 
-  def valid_tweet?
-    tweet_id = @tweet.id.to_s + "\n"
+  def valid_tweet?(tweet)
+    tweet_id = tweet.id.to_s + "\n"
 
     file = File.open('tweeted.txt', 'r')
     resent_tweeted_ids = file.readlines.last(10)
     return false if resent_tweeted_ids.include?(tweet_id)
-    return false unless VALID_CATEGORIES.include?(tweet_category)
+    return false unless VALID_CATEGORIES.include?(tweet_category(tweet))
     true
   end
 
@@ -81,8 +87,8 @@ class NewsBot
     !tweeted_ids.include?(tweet_id)
   end
 
-  def tweet_category
-    text = @tweet.text
+  def tweet_category(tweet)
+    text = tweet.text
     exec_file = '../news_classifier/news_classifier.py'
     category = `python #{exec_file} '#{text}'`.chomp.to_sym
     CATEGORY_MAP[category]
@@ -90,5 +96,5 @@ class NewsBot
 end
 
 bot = NewsBot.new
-bot.tweet!
+bot.tweet_all!
 bot.reply!
