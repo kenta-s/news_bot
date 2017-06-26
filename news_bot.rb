@@ -1,4 +1,5 @@
 require 'twitter'
+require 'mecab'
 require 'pry'
 
 class NewsBot
