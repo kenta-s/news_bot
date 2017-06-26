@@ -96,5 +96,5 @@ class NewsBot
 end
 
 bot = NewsBot.new
-# bot.tweet_all!
+bot.tweet_all!
 bot.reply!
