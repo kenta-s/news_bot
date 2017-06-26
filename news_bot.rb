@@ -4,6 +4,13 @@ require 'pry'
 class NewsBot
   OWNER = %w(kenta_s_dev)
   CATEGORIES = %w(その他 経済 スポーツ 芸能)
+  CATEGORY_MAP = {
+    others: 'その他',
+    finance: '経済',
+    sports: 'スポーツ',
+    celebrity: '芸能'
+  }
+  VALID_CATEGORIES = %(その他 経済)
 
   def initialize
     @client = Twitter::REST::Client.new do |config|
@@ -61,7 +68,9 @@ class NewsBot
 
     file = File.open('tweeted.txt', 'r')
     resent_tweeted_ids = file.readlines.last(10)
-    !resent_tweeted_ids.include?(tweet_id)
+    return false if resent_tweeted_ids.include?(tweet_id)
+    return false unless VALID_CATEGORIES.include?(tweet_category)
+    true
   end
 
   def valid_reply?(tweet_id)
@@ -69,6 +78,13 @@ class NewsBot
     file = File.open('replied.txt', 'r')
     tweeted_ids = file.readlines.last(10)
     !tweeted_ids.include?(tweet_id)
+  end
+
+  def tweet_category
+    text = @tweet.text
+    exec_file = '../news_classifier/news_classifier.py'
+    category = `python #{exec_file} '#{text}'`.chomp.to_sym
+    CATEGORY_MAP[category]
   end
 end
 
