@@ -1,5 +1,6 @@
 require 'twitter'
 require 'natto'
+require 'yaml'
 require 'pry'
 
 class NewsBot
@@ -79,7 +80,7 @@ class NewsBot
   end
 
   def label_update!(tweet, category)
-    filename = "../news_classifier/sample_news/news.json" # TODO: move this to config or something
+    filename = config['news_json']
     json = open(filename) do |f|
       JSON.load(f)
     end
@@ -112,9 +113,15 @@ class NewsBot
 
   def tweet_category(tweet)
     text = tweet.text
-    exec_file = '../news_classifier/news_classifier.py'
+    exec_file = config['exec_file']
     category = `python #{exec_file} '#{text}'`.chomp.to_sym
     CATEGORY_TRANSLATION[category]
+  end
+
+  def config
+    @config ||= open('config.yml') do |f|
+      YAML.load(f)
+    end
   end
 end
 

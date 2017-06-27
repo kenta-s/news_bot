@@ -1,0 +1,2 @@
+exec_file: '../news_classifier/news_classifier.py'
+news_json: '../news_classifier/sample_news/news.json' 
