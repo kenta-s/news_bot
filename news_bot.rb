@@ -57,7 +57,7 @@ class NewsBot
         text = "@#{user_name} 現在有効なカテゴリは「その他, 経済, スポーツ, 芸能」 です。"
       else
         label_update!(tweet, tweet_category)
-        text = "@#{user_name} #{tweet_category} ですね。\n学習しますた m9(^Д^)"
+        text = "@#{user_name} #{tweet_category} ですね。\n学習しておきます。"
       end
 
       @client.update(text, in_reply_to_status_id: tweet.id)
