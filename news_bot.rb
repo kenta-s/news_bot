@@ -3,15 +3,21 @@ require 'mecab'
 require 'pry'
 
 class NewsBot
-  OWNER = %w(kenta_s_dev)
-  CATEGORIES = %w(その他 経済 スポーツ 芸能)
-  CATEGORY_MAP = {
+  OWNER = %w(kenta_s_dev).freeze
+  CATEGORIES = %w(その他 経済 スポーツ 芸能).freeze
+  CATEGORY_TRANSLATION = {
     others: 'その他',
     finance: '経済',
     sports: 'スポーツ',
     celebrity: '芸能'
+  }.freeze
+  CATEGORY_MAP = {
+    'その他': '0',
+    '芸能': '1',
+    'スポーツ': '2',
+    '経済': '3'
   }
-  VALID_CATEGORIES = %(その他 経済)
+  VALID_CATEGORIES = %(その他 経済).freeze
 
   def initialize
     @client = Twitter::REST::Client.new do |config|
@@ -45,7 +51,6 @@ class NewsBot
       next unless OWNER.include?(user_name)
       next unless valid_reply?(tweet.id)
 
-      tweet.text
       tweet_category = nil
       CATEGORIES.each do |category|
         if tweet.text.match(category)
@@ -58,6 +63,7 @@ class NewsBot
       if tweet_category.nil?
         text = "@#{user_name} 現在有効なカテゴリは「その他, 経済, スポーツ, 芸能」 です。"
       else
+        label_update!(tweet, tweet_category)
         text = "@#{user_name} #{tweet_category} ですね。\n学習しますた m9(^Д^)"
       end
 
@@ -69,6 +75,21 @@ class NewsBot
   end
 
   private
+
+  def label_update!(tweet, category)
+    filename = "../news_classifier/sample_news/news.json" # TODO: move this to config or something
+    json = open(filename) do |f|
+      JSON.load(f)
+    end
+
+    target_tweet = @client.status(tweet.in_reply_to_status_id)
+    train_data = {content: target_tweet.text, label: CATEGORY_MAP[category.to_sym]}
+    json["YahooNews"][target_tweet.id] = train_data
+
+    open(filename, 'w') do |f|
+      JSON.dump(json, f)
+    end
+  end
 
   def valid_tweet?(tweet)
     tweet_id = tweet.id.to_s + "\n"
@@ -91,10 +112,10 @@ class NewsBot
     text = tweet.text
     exec_file = '../news_classifier/news_classifier.py'
     category = `python #{exec_file} '#{text}'`.chomp.to_sym
-    CATEGORY_MAP[category]
+    CATEGORY_TRANSLATION[category]
   end
 end
 
 bot = NewsBot.new
-bot.tweet_all!
+# bot.tweet_all!
 bot.reply!
