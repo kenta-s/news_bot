@@ -1,5 +1,5 @@
 require 'twitter'
-require 'mecab'
+require 'natto'
 require 'pry'
 
 class NewsBot
@@ -16,7 +16,7 @@ class NewsBot
     '芸能': '1',
     'スポーツ': '2',
     '経済': '3'
-  }
+  }.freeze
   VALID_CATEGORIES = %(その他 経済).freeze
 
   def initialize
@@ -51,14 +51,7 @@ class NewsBot
       next unless OWNER.include?(user_name)
       next unless valid_reply?(tweet.id)
 
-      tweet_category = nil
-      CATEGORIES.each do |category|
-        if tweet.text.match(category)
-          tweet_category = $&
-        else
-          next
-        end
-      end
+      tweet_category = category_text(tweet.text)
 
       if tweet_category.nil?
         text = "@#{user_name} 現在有効なカテゴリは「その他, 経済, スポーツ, 芸能」 です。"
@@ -75,6 +68,15 @@ class NewsBot
   end
 
   private
+
+  def category_text(text)
+    natto = Natto::MeCab.new
+    words = []
+    natto.parse(text) do |n|
+      words << n.surface
+    end
+    (CATEGORIES & words).first
+  end
 
   def label_update!(tweet, category)
     filename = "../news_classifier/sample_news/news.json" # TODO: move this to config or something
