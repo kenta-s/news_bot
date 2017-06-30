@@ -41,7 +41,7 @@ class NewsBot
       File.open("tweeted.txt", "a") do |f|
         f.puts(tweet.id)
       end
-      @client.update(tweet.text + " [ from #{@user} ]")
+      @client.update(tweet.text)
     end
   end
 
